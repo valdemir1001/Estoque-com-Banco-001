@@ -1,0 +1,267 @@
+cadastro com abas
+
+from tkinter import *
+from tkinter import ttk
+import sqlite3
+
+from entrada import Entrada
+
+
+root = Tk()
+
+class Funcoes_cadastro():
+    def limpa_tela_cadastro(self):
+        self.entry_id_cadastro.delete(0,END)
+        self.entry_material_cadastro.delete(0,END)
+        self.entry_tipo_cadastro.delete(0,END)
+        
+    def conecta_bd(self):
+        self.conn = sqlite3.connect('cordeirinho.bd')
+        self.cursor = self.conn.cursor()
+
+        print('Conectado ao Banco Cordeirinho')
+    
+    def desconecta_bd(self):
+        self.conn.close()
+
+    def monta_tabelas(self):
+        self.conecta_bd()
+        print('Banco Desconectado')
+
+    # Criar Tabelas
+        self.cursor.execute (""" 
+                            CREATE TABLE IF NOT EXISTS cadastro (
+                                id_cadastro INTEGER PRIMARY KEY AUTOINCREMENT,
+                                material_cadastro VARCHAR(100) NOT NULL,
+                                tipo_cadastro VARCHAR(30) NOT NULL
+                                )
+                            """)
+        
+        self.cursor.execute(""" 
+                            CREATE TABLE IF NOT EXISTS estoque (
+                                id_estoque INTEGER PRIMARY KEY AUTOINCREMENT,
+                                material_estoque VARCHAR(100) NOT NULL,
+                                quantidade_estoque INTEGER NOT NULL,
+                                tipo_estoque VARCHAR(30) NOT NULL,
+                                data_estoque DATA NOT NULL,
+                                id_cadastro INTEGER,
+                                id_entrada INTEGER,
+                                id_saida INTEGER,
+                                FOREIGN KEY (id_cadastro) REFERENCES cadastro (id_cadastro),
+                                FOREIGN KEY (id_entrada) REFERENCES cadastro (id_entrada),
+                                FOREIGN KEY (id_saida) REFERENCES cadastro (id_saida)
+                                )
+                            """)
+        
+        self.cursor.execute(""" 
+                            CREATE TABLE IF NOT EXISTS entrada (
+                                id_entrada INTEGER PRIMARY KEY AUTOINCREMENT,
+                                material_entrada VARCHAR(100) NOT NULL,
+                                quantidade_entrada INTEGER NOT NULL,
+                                tipo_entrada VARCHAR(30) NOT NULL,
+                                data_entrada DATA NOT NULL
+                                )
+                            """)
+        
+        self.cursor.execute(""" 
+                            CREATE TABLE IF NOT EXISTS saida (
+                                id_saida INTEGER PRIMARY KEY AUTOINCREMENT,
+                                material_saida VARCHAR(100) NOT NULL,
+                                quantidade_saida INTEGER NOT NULL,
+                                tipo_saida VARCHAR(30) NOT NULL,
+                                data_saida DATA NOT NULL
+                                )
+                            """)
+
+
+        self.conn.commit(); print('Tabelas cadastro,estoque,entrada e saida Criados')
+        self.desconecta_bd()
+
+    def variaveis_cadastro(self):
+        self.id_cadastro = self.entry_id_cadastro.get()
+        self.material_cadastro = self.entry_material_cadastro.get()
+        self.tipo_cadastro = self.entry_tipo_cadastro.get()
+       
+    def add_material_cadastro(self):
+        self.variaveis_cadastro()
+        self.conecta_bd()
+        self.cursor.execute("""
+                            INSERT INTO cadastro(material_cadastro,tipo_cadastro)
+                            VALUES (?,?)""",(self.material_cadastro,self.tipo_cadastro))
+        self.conn.commit()
+        self.desconecta_bd()
+        self.select_lista_cadastro()
+        self.limpa_tela_cadastro()
+
+    def select_lista_cadastro(self):
+        self.lista_material_cadastro.delete(*self.lista_material_cadastro.get_children())
+        self.conecta_bd()
+        lista = self.cursor.execute("""
+                                SELECT id_cadastro, material_cadastro,tipo_cadastro
+                                FROM cadastro
+                                ORDER BY material_cadastro ASC""")
+        for i in lista:
+            self.lista_material_cadastro.insert('','end', values=i)
+
+
+        self.desconecta_bd()
+
+    def OnDoubleClick_cadastro(self,event):
+        self.limpa_tela_cadastro()
+        self.lista_material_cadastro.selection()
+        
+        for n in self.lista_material_cadastro.selection():
+            col1,col2,col3 = self.lista_material_cadastro.item(n, 'values')
+            
+            self.entry_id_cadastro.insert(END,col1)
+            self.entry_material_cadastro.insert(END,col2)
+            self.entry_tipo_cadastro.insert(END,col3)
+            
+    def deleta_material_cadastro(self):
+        self.variaveis_cadastro()
+        self.conecta_bd()
+        self.cursor.execute("""
+                                DELETE FROM cadastro WHERE id_cadastro = ? """,(self.id_cadastro,))
+        self.conn.commit()   
+        self.desconecta_bd()
+        self.limpa_tela_cadastro()
+        self.select_lista_cadastro()
+
+    def alterar_cadastro(self):
+        self.variaveis_cadastro()
+        self.conecta_bd()
+
+
+        self.cursor.execute("""
+                            UPDATE cadastro SET material_cadastro=?,tipo_cadastro=? 
+                            WHERE id_cadastro = ? """,(self.material_cadastro,self.tipo_cadastro,self.id_cadastro))
+
+        self.conn.commit()
+        
+        self.desconecta_bd()
+        self.select_lista_cadastro()
+        self.limpa_tela_cadastro() 
+        
+class Application(Funcoes_cadastro,Entrada):
+    def __init__(self,master=None):
+        self.root = root
+        self.tela_cadastro()
+        self.frames_cadastro()
+        self.widgts()
+        self.widgts_entrada()
+        self.lista_frame3_cadastro()
+        self.lista_frame3_entrada()
+        self.lista_frame2_entrada()
+        self.monta_tabelas()
+        self.select_lista_cadastro()
+
+
+        root.mainloop()
+
+    def tela_cadastro(self):
+        self.root.title('Controle material')
+        self.root.geometry('900x700+10+10')
+        self.root.configure(background='gray')
+        self.root.minsize(width=400,height=300)
+        
+        
+    #COLOCAR ABAS AQUI
+   
+    def frames_cadastro(self):
+        self.abas = ttk.Notebook(self.root)
+        self.aba1 = Frame(self.abas)
+        self.aba2 = Frame(self.abas)
+        self.aba3 = Frame(self.abas)
+        
+        self.aba1.configure(background='gray')
+        self.aba2.configure(background='gray')
+        self.aba3.configure(background='gray')
+        
+        self.abas.add(self.aba1,text='CADASTRO DE MATERIAL')
+        self.abas.add(self.aba2,text='SAIDA DE MATERIAL')
+        self.abas.add(self.aba3,text='ENTRADA DE MATERIAL')
+        
+        self.abas.place(relx=0,rely=0,relwidth=0.99,relheight=0.99)
+        
+        self.frame_1_cadastro = Frame(self.aba1,bd= 4,highlightbackground='black',highlightthickness=2,bg='red')
+        self.frame_1_cadastro.place(relx=0.01,rely=0.01,relwidth=0.98,relheight=0.15)
+
+        self.frame_2_cadastro = Frame(self.aba1, bd= 4,highlightbackground='black',highlightthickness=2,bg='blue')
+        self.frame_2_cadastro.place(relx=0.01, rely=0.17, relwidth=0.98, relheight=0.42)
+
+        self.frame_3_cadastro = Frame(self.aba1, bd= 4,highlightbackground='black',highlightthickness=2 ,bg='green')
+        self.frame_3_cadastro.place(relx=0.01, rely=0.60, relwidth=0.98, relheight=0.39)
+        
+    
+        self.frame_1_entrada = Frame(self.aba3,bd= 4,highlightbackground='black',highlightthickness=2,bg='red')
+        self.frame_1_entrada.place(relx=0.01,rely=0.01,relwidth=0.98,relheight=0.15)
+
+        self.frame_2_entrada = Frame(self.aba3, bd= 4,highlightbackground='black',highlightthickness=2,bg='blue')
+        self.frame_2_entrada.place(relx=0.01, rely=0.17, relwidth=0.98, relheight=0.42)
+
+        self.frame_3_entrada = Frame(self.aba3, bd= 4,highlightbackground='black',highlightthickness=2 ,bg='green')
+        self.frame_3_entrada.place(relx=0.01, rely=0.60, relwidth=0.98, relheight=0.39)
+
+    def widgts(self):
+    # Titulo
+        self.label_titulo_cadastro = Label(self.frame_1_cadastro, text='estoque - cordeirinho'.upper(), font='verdana 40 bold')
+        self.label_titulo_cadastro.place(relx=0.01, rely=0.01, relwidth=0.98, relheight=0.98)
+    # ID
+        self.label_id_cadastro = Label(self.frame_2_cadastro, text='id'.upper(),font='verdana 10 bold')
+        self.label_id_cadastro.place(relx=0.07, rely=0.05, relwidth=0.04, relheight=0.08)
+
+        self.entry_id_cadastro = Entry(self.frame_2_cadastro, font='verdana 10 bold')
+        self.entry_id_cadastro.place(relx=0.12, rely=0.05, relwidth=0.10, relheight=0.08)
+    
+    # Material
+        self.label_material_cadastro = Label(self.frame_2_cadastro, text='material'.upper(), font='verdana 10 bold')
+        self.label_material_cadastro.place(relx=0.01, rely=0.17, relwidth=0.10, relheight=0.08)
+
+        self.entry_material_cadastro = Entry(self.frame_2_cadastro, font='verdana 10 bold')
+        self.entry_material_cadastro.place(relx=0.12, rely=0.17, relwidth=0.36, relheight=0.08)
+
+    # Tipo
+        self.label_tipo_cadastro = Label(self.frame_2_cadastro, text='tipo'.upper(), font='verdana 10 bold')
+        self.label_tipo_cadastro.place(relx=0.30, rely=0.29, relwidth=0.05, relheight=0.08)
+
+        self.entry_tipo_cadastro = Entry(self.frame_2_cadastro, font='verdana 10 bold')
+        self.entry_tipo_cadastro.place(relx=0.36, rely=0.29, relwidth=0.12, relheight=0.08)
+
+    # Botao Cadastrar Material
+
+        self.bt_Material_cadastro = Button(self.frame_2_cadastro,text='Cadastrar Material'.upper(),command=self.add_material_cadastro)
+        self.bt_Material_cadastro.place(relx=0.01, rely=0.70, relwidth=0.16, relheight=0.20)
+
+
+    # Alterar
+        self.bt_alterar_cadastro = Button(self.frame_2_cadastro, text='alterar'.upper(),command=self.alterar_cadastro)
+        self.bt_alterar_cadastro.place(relx=0.01, rely=0.50, relwidth=0.16, relheight=0.10)
+
+        self.bt_excluir_cadastro = Button(self.frame_2_cadastro, text='excluir'.upper(),command=self.deleta_material_cadastro)
+        self.bt_excluir_cadastro.place(relx=0.01, rely=0.60, relwidth=0.16, relheight=0.10)
+
+    def lista_frame3_cadastro(self):
+        self.lista_material_cadastro = ttk.Treeview(self.frame_3_cadastro,height=3,columns=('col1','col2','col3'))
+        self.lista_material_cadastro.heading('#0',text='')
+        self.lista_material_cadastro.heading('#1', text='id')
+        self.lista_material_cadastro.heading('#2', text='material')
+        self.lista_material_cadastro.heading('#3', text='tipo')
+        
+        self.lista_material_cadastro.column('#0',width=1)
+        self.lista_material_cadastro.column('#1', width=40)
+        self.lista_material_cadastro.column('#2', width=200)
+        self.lista_material_cadastro.column('#3', width=100)
+       
+        self.lista_material_cadastro.place(relx=0.01,rely=0.01,relwidth=0.97,relheight=0.95)
+
+    # Barra de Rolagem
+        self.scroollista_cadastro = Scrollbar(self.frame_3_cadastro,orient='vertical')
+        self.lista_material_cadastro.configure(yscroll= self.scroollista_cadastro.set)
+        self.scroollista_cadastro.place(relx=0.98,rely=0.01,relwidth=0.02,relheight=0.95)
+        
+        self.lista_material_cadastro.bind('<Double-1>',self.OnDoubleClick_cadastro)
+
+Application()
+
+
+
